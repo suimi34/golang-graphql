@@ -4,14 +4,14 @@
 FROM golang:1.23.3 as builder
 WORKDIR /app
 
-# Initialize a new Go module.
-RUN go mod init golang-graphql
+COPY go.mod go.sum ./
+RUN go mod download
 
 # Copy local code to the container image.
-COPY *.go ./
+COPY . .
 
 # Build the command inside the container.
-RUN CGO_ENABLED=0 GOOS=linux go build -o /golang-graphql
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o /app/main
 
 # Use a Docker multi-stage build to create a lean production image.
 # https://docs.docker.com/develop/develop-images/multistage-build/#use-multi-stage-builds
@@ -21,7 +21,9 @@ FROM gcr.io/distroless/base-debian11
 WORKDIR /
 
 # Copy the binary to the production image from the builder stage.
-COPY --from=builder /golang-graphql /golang-graphql
+COPY --from=builder /app/main /golang-graphql
+
+EXPOSE 8080
 
 # Run the web service on container startup.
 USER nonroot:nonroot
