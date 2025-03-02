@@ -8,9 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/suimi34/golang-graphql/graph"
+	"github.com/suimi34/golang-graphql/graph/model"
 )
 
 func TestGraphQLRequest(t *testing.T) {
@@ -29,6 +32,8 @@ func TestGraphQLRequest(t *testing.T) {
 		"query": `{
 			todos {
 				id
+				text
+				done
 			}
 		}`,
 	})
@@ -57,7 +62,19 @@ func TestGraphQLRequest(t *testing.T) {
 		t.Fatalf("レスポンスの読み込みに失敗: %v", err)
 	}
 
+	var res struct {
+		Data struct {
+			Todos []model.Todo `json:"todos"`
+		} `json:"data"`
+	}
+
 	// レスポンス内容の検証
 	t.Logf("レスポンス: %s", string(body))
-	// 必要に応じて、json.Unmarshalで構造体に変換し、フィールドの値をアサートする
+	if err := json.Unmarshal(body, &res); err != nil {
+		t.Fatalf("レスポンスのデコードに失敗: %v", err)
+	}
+
+	assert.Equal(t, res.Data.Todos[0].ID, "1")
+	assert.Equal(t, res.Data.Todos[0].Text, "test")
+	assert.Equal(t, res.Data.Todos[0].Done, false)
 }

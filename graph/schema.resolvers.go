@@ -18,8 +18,15 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) 
 
 // Todos is the resolver for the todos field.
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
+	a := model.Todo{
+		ID:   "1",
+		Text: "test",
+		Done: false,
+	}
+
+	slice := []*model.Todo{&a}
 	// panic(fmt.Errorf("not implemented: Todos - todos"))
-	return r.todos, nil
+	return slice, nil
 }
 
 // Mutation returns MutationResolver implementation.
