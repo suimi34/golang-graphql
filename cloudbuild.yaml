@@ -15,7 +15,9 @@ steps:
     args:
     - -c
     - |
-      gcloud run deploy ${_SERVICE_NAME} --image gcr.io/${PROJECT_ID}/${_SERVICE_NAME}
+      gcloud run deploy ${_SERVICE_NAME} --image gcr.io/${PROJECT_ID}/${_SERVICE_NAME} \
+      --region asia-northeast1 \
+      --allow-unauthenticated
 
 substitutions:
   _SERVICE_NAME: api
