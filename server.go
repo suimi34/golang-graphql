@@ -23,15 +23,14 @@ func main() {
 		port = defaultPort
 	}
 
-	// データベース接続を初期化
+	// GORM接続を初期化
 	config := database.GetDBConfig("development")
-	db, err := database.ConnectDB(config)
+	gormDB, err := database.ConnectGORM(config)
 	if err != nil {
-		log.Fatalf("データベース接続に失敗: %v", err)
+		log.Fatalf("GORM接続に失敗: %v", err)
 	}
-	defer db.Close()
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db}}))
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{GORMDB: gormDB}}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})

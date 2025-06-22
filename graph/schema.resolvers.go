@@ -9,68 +9,78 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/suimi34/golang-graphql/database"
 	"github.com/suimi34/golang-graphql/graph/model"
 )
 
 // CreateTodo is the resolver for the createTodo field.
 func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	// ユーザー情報をデータベースから取得
-	var user model.User
-	err := r.DB.QueryRow("SELECT id, name, email, created_at, updated_at FROM users WHERE id = ?", input.UserID).Scan(
-		&user.ID, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt)
+	// ユーザー情報をGORMで取得
+	var dbUser database.User
+	userIDInt, err := strconv.Atoi(input.UserID)
 	if err != nil {
+		return nil, fmt.Errorf("無効なユーザーID: %v", err)
+	}
+
+	if err := r.GORMDB.First(&dbUser, userIDInt).Error; err != nil {
 		return nil, fmt.Errorf("ユーザーが見つかりません: %v", err)
 	}
 
-	// TODOをデータベースに挿入
-	result, err := r.DB.Exec("INSERT INTO todos (text, done, user_id) VALUES (?, ?, ?)", input.Text, false, input.UserID)
-	if err != nil {
+	// TODOをGORMで作成
+	dbTodo := database.Todo{
+		Text:   input.Text,
+		Done:   false,
+		UserID: uint(userIDInt),
+	}
+
+	if err := r.GORMDB.Create(&dbTodo).Error; err != nil {
 		return nil, fmt.Errorf("TODOの作成に失敗: %v", err)
 	}
 
-	todoID, err := result.LastInsertId()
-	if err != nil {
-		return nil, fmt.Errorf("TODO IDの取得に失敗: %v", err)
+	// レスポンス用のモデルに変換
+	user := &model.User{
+		ID:        strconv.Itoa(int(dbUser.ID)),
+		Name:      dbUser.Name,
+		Email:     dbUser.Email,
+		CreatedAt: dbUser.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt: dbUser.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	todo := &model.Todo{
-		ID:   strconv.FormatInt(todoID, 10),
-		Text: input.Text,
-		Done: false,
-		User: &user,
+		ID:   strconv.Itoa(int(dbTodo.ID)),
+		Text: dbTodo.Text,
+		Done: dbTodo.Done,
+		User: user,
 	}
 	return todo, nil
 }
 
 // Todos is the resolver for the todos field.
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	// データベースからTODO一覧を取得
-	query := `
-		SELECT t.id, t.text, t.done, t.user_id,
-		       u.id, u.name, u.email, u.created_at, u.updated_at
-		FROM todos t
-		JOIN users u ON t.user_id = u.id
-		ORDER BY t.created_at DESC
-	`
-	rows, err := r.DB.Query(query)
-	if err != nil {
+	// GORMでTODO一覧を取得（Userも含む）
+	var dbTodos []database.Todo
+	if err := r.GORMDB.Preload("User").Order("created_at DESC").Find(&dbTodos).Error; err != nil {
 		return nil, fmt.Errorf("TODO取得エラー: %v", err)
 	}
-	defer rows.Close()
 
+	// レスポンス用のモデルに変換
 	var todos []*model.Todo
-	for rows.Next() {
-		var todo model.Todo
-		var user model.User
-		var userID string
-
-		if err := rows.Scan(&todo.ID, &todo.Text, &todo.Done, &userID,
-			&user.ID, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt); err != nil {
-			continue
+	for _, dbTodo := range dbTodos {
+		user := &model.User{
+			ID:        strconv.Itoa(int(dbTodo.User.ID)),
+			Name:      dbTodo.User.Name,
+			Email:     dbTodo.User.Email,
+			CreatedAt: dbTodo.User.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			UpdatedAt: dbTodo.User.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 		}
 
-		todo.User = &user
-		todos = append(todos, &todo)
+		todo := &model.Todo{
+			ID:   strconv.Itoa(int(dbTodo.ID)),
+			Text: dbTodo.Text,
+			Done: dbTodo.Done,
+			User: user,
+		}
+		todos = append(todos, todo)
 	}
 
 	return todos, nil

@@ -18,34 +18,43 @@ import (
 )
 
 func TestGraphQLRequest(t *testing.T) {
-	// テスト用データベース接続を設定
+	// GORM接続を初期化
 	config := database.GetDBConfig("test")
-	db, err := database.ConnectDB(config)
+	gormDB, err := database.ConnectGORM(config)
 	if err != nil {
-		t.Fatalf("テストデータベース接続に失敗: %v", err)
-	}
-	defer db.Close()
-
-	// テスト用データを挿入
-	_, err = db.Exec("INSERT INTO users (id, name, email, password) VALUES (1, 'test', 'test@example.com', 'password') ON DUPLICATE KEY UPDATE name='test'")
-	if err != nil {
-		t.Fatalf("テストデータの挿入に失敗: %v", err)
+		t.Fatalf("GORM接続に失敗: %v", err)
 	}
 
-	// テスト用TODOを挿入
-	_, err = db.Exec("INSERT INTO todos (id, text, done, user_id) VALUES (1, 'test todo', false, 1) ON DUPLICATE KEY UPDATE text='test todo'")
-	if err != nil {
+	// テスト用データをGORMで挿入
+	testUser := database.User{
+		ID:       1,
+		Name:     "test",
+		Email:    "test@example.com",
+		Password: "password",
+	}
+	if err := gormDB.Save(&testUser).Error; err != nil {
+		t.Fatalf("テストユーザーの挿入に失敗: %v", err)
+	}
+
+	// テスト用TODOをGORMで挿入
+	testTodo := database.Todo{
+		ID:     1,
+		Text:   "test todo",
+		Done:   false,
+		UserID: 1,
+	}
+	if err := gormDB.Save(&testTodo).Error; err != nil {
 		t.Fatalf("テストTODOの挿入に失敗: %v", err)
 	}
 
-	// テスト終了後にクリーンアップ
+	// テスト終了後にGORMでクリーンアップ
 	defer func() {
-		db.Exec("DELETE FROM todos WHERE user_id IN (1, 123)")
-		db.Exec("DELETE FROM users WHERE id IN (1, 123)")
+		gormDB.Where("user_id IN ?", []uint{1, 123}).Delete(&database.Todo{})
+		gormDB.Where("id IN ?", []uint{1, 123}).Delete(&database.User{})
 	}()
 
 	// gqlgenで生成されたExecutableSchemaからサーバーを作成
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db}}))
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{GORMDB: gormDB}}))
 	srv.AddTransport(transport.POST{})
 
 	// httptestでテスト用サーバーを作成
@@ -124,27 +133,31 @@ func TestGraphQLRequest(t *testing.T) {
 }
 
 func TestCreateTodoMutation(t *testing.T) {
-	// テスト用データベース接続を設定
+	// GORM接続を初期化
 	config := database.GetDBConfig("test")
-	db, err := database.ConnectDB(config)
+	gormDB, err := database.ConnectGORM(config)
 	if err != nil {
-		t.Fatalf("テストデータベース接続に失敗: %v", err)
-	}
-	defer db.Close()
-
-	// テスト用ユーザーデータを挿入
-	_, err = db.Exec("INSERT INTO users (id, name, email, password) VALUES (123, 'Test User', 'testuser@example.com', 'password') ON DUPLICATE KEY UPDATE name='Test User'")
-	if err != nil {
-		t.Fatalf("テストデータの挿入に失敗: %v", err)
+		t.Fatalf("GORM接続に失敗: %v", err)
 	}
 
-	// テスト終了後にクリーンアップ
+	// テスト用ユーザーデータをGORMで挿入
+	testUser := database.User{
+		ID:       123,
+		Name:     "Test User",
+		Email:    "testuser@example.com",
+		Password: "password",
+	}
+	if err := gormDB.Save(&testUser).Error; err != nil {
+		t.Fatalf("テストユーザーの挿入に失敗: %v", err)
+	}
+
+	// テスト終了後にGORMでクリーンアップ
 	defer func() {
-		db.Exec("DELETE FROM todos WHERE user_id IN (1, 123)")
-		db.Exec("DELETE FROM users WHERE id IN (1, 123)")
+		gormDB.Where("user_id IN ?", []uint{1, 123}).Delete(&database.Todo{})
+		gormDB.Where("id IN ?", []uint{1, 123}).Delete(&database.User{})
 	}()
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db}}))
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{GORMDB: gormDB}}))
 	srv.AddTransport(transport.POST{})
 
 	ts := httptest.NewServer(srv)
@@ -207,11 +220,10 @@ func TestCreateTodoMutation(t *testing.T) {
 	assert.Equal(t, "123", res.Data.CreateTodo.User.ID)
 	assert.Equal(t, "Test User", res.Data.CreateTodo.User.Name)
 
-	// データベースに実際にTODOが作成されたことを確認
-	var count int
-	err = db.QueryRow("SELECT COUNT(*) FROM todos WHERE text = 'New Todo Item' AND user_id = 123").Scan(&count)
-	if err != nil {
+	// データベースに実際にTODOが作成されたことをGORMで確認
+	var count int64
+	if err := gormDB.Model(&database.Todo{}).Where("text = ? AND user_id = ?", "New Todo Item", 123).Count(&count).Error; err != nil {
 		t.Fatalf("TODOカウント取得に失敗: %v", err)
 	}
-	assert.Equal(t, 1, count, "TODOがデータベースに作成されている必要があります")
+	assert.Equal(t, int64(1), count, "TODOがデータベースに作成されている必要があります")
 }
