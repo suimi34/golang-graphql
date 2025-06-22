@@ -1,0 +1,14 @@
+services:
+  test_db:
+    image: mysql:8.4.5
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: graphql_test_db
+
+volumes:
+  mysql_test_data:
+    driver: local

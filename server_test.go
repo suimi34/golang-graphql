@@ -12,13 +12,33 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/suimi34/golang-graphql/database"
 	"github.com/suimi34/golang-graphql/graph"
 	"github.com/suimi34/golang-graphql/graph/model"
 )
 
 func TestGraphQLRequest(t *testing.T) {
+	// テスト用データベース接続を設定
+	config := database.GetDBConfig("test")
+	db, err := database.ConnectDB(config)
+	if err != nil {
+		t.Fatalf("テストデータベース接続に失敗: %v", err)
+	}
+	defer db.Close()
+
+	// テスト用データを挿入
+	_, err = db.Exec("INSERT INTO users (id, name, email, password) VALUES (1, 'test', 'test@example.com', 'password') ON DUPLICATE KEY UPDATE name='test'")
+	if err != nil {
+		t.Fatalf("テストデータの挿入に失敗: %v", err)
+	}
+
+	// テスト終了後にクリーンアップ
+	defer func() {
+		db.Exec("DELETE FROM users WHERE id IN (1, 123)")
+	}()
+
 	// gqlgenで生成されたExecutableSchemaからサーバーを作成
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db}}))
 	srv.AddTransport(transport.POST{})
 
 	// httptestでテスト用サーバーを作成
@@ -74,13 +94,34 @@ func TestGraphQLRequest(t *testing.T) {
 		t.Fatalf("レスポンスのデコードに失敗: %v", err)
 	}
 
-	assert.Equal(t, res.Data.Todos[0].ID, "1")
-	assert.Equal(t, res.Data.Todos[0].Text, "test")
-	assert.Equal(t, res.Data.Todos[0].Done, false)
+	// データが存在することを確認
+	assert.True(t, len(res.Data.Todos) > 0, "todos should not be empty")
+	assert.Equal(t, "1", res.Data.Todos[0].ID)
+	assert.Equal(t, "Todo for test", res.Data.Todos[0].Text)
+	assert.Equal(t, false, res.Data.Todos[0].Done)
 }
 
 func TestCreateTodoMutation(t *testing.T) {
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	// テスト用データベース接続を設定
+	config := database.GetDBConfig("test")
+	db, err := database.ConnectDB(config)
+	if err != nil {
+		t.Fatalf("テストデータベース接続に失敗: %v", err)
+	}
+	defer db.Close()
+
+	// テスト用ユーザーデータを挿入
+	_, err = db.Exec("INSERT INTO users (id, name, email, password) VALUES (123, 'Test User', 'testuser@example.com', 'password') ON DUPLICATE KEY UPDATE name='Test User'")
+	if err != nil {
+		t.Fatalf("テストデータの挿入に失敗: %v", err)
+	}
+
+	// テスト終了後にクリーンアップ
+	defer func() {
+		db.Exec("DELETE FROM users WHERE id IN (1, 123)")
+	}()
+
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db}}))
 	srv.AddTransport(transport.POST{})
 
 	ts := httptest.NewServer(srv)
@@ -90,7 +131,7 @@ func TestCreateTodoMutation(t *testing.T) {
 
 	mutation := `
 		mutation {
-			createTodo(input: {text: "New Todo Item", userId: "user123"}) {
+			createTodo(input: {text: "New Todo Item", userId: "123"}) {
 				id
 				text
 				done
@@ -140,6 +181,6 @@ func TestCreateTodoMutation(t *testing.T) {
 	assert.Equal(t, "new-todo-id", res.Data.CreateTodo.ID)
 	assert.Equal(t, "New Todo Item", res.Data.CreateTodo.Text)
 	assert.Equal(t, false, res.Data.CreateTodo.Done)
-	assert.Equal(t, "user123", res.Data.CreateTodo.User.ID)
+	assert.Equal(t, "123", res.Data.CreateTodo.User.ID)
 	assert.Equal(t, "Test User", res.Data.CreateTodo.User.Name)
 }

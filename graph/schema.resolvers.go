@@ -6,35 +6,62 @@ package graph
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
 	"github.com/suimi34/golang-graphql/graph/model"
 )
 
 // CreateTodo is the resolver for the createTodo field.
 func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
+	// ユーザー情報をデータベースから取得
+	var user model.User
+	var email string
+	fmt.Printf("inp: %v", input.UserID)
+	err := r.DB.QueryRow("SELECT id, name, email FROM users WHERE id = ?", input.UserID).Scan(&user.ID, &user.Name, &email)
+	if err != nil {
+		return nil, fmt.Errorf("ユーザーが見つかりません: %v", err)
+	}
+
 	todo := &model.Todo{
 		ID:   "new-todo-id",
 		Text: input.Text,
 		Done: false,
-		User: &model.User{
-			ID:   input.UserID,
-			Name: "Test User",
-		},
+		User: &user,
 	}
 	return todo, nil
 }
 
 // Todos is the resolver for the todos field.
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	a := model.Todo{
-		ID:   "1",
-		Text: "test",
-		Done: false,
+	// データベースからユーザー一覧を取得して返す例
+	rows, err := r.DB.Query("SELECT id, name, email FROM users LIMIT 10")
+	if err != nil {
+		return nil, fmt.Errorf("ユーザー取得エラー: %v", err)
+	}
+	defer rows.Close()
+
+	var todos []*model.Todo
+	for rows.Next() {
+		var id int
+		var name, email string
+		if err := rows.Scan(&id, &name, &email); err != nil {
+			continue
+		}
+
+		todo := &model.Todo{
+			ID:   strconv.Itoa(id),
+			Text: fmt.Sprintf("Todo for %s", name),
+			Done: false,
+			User: &model.User{
+				ID:   strconv.Itoa(id),
+				Name: name,
+			},
+		}
+		todos = append(todos, todo)
 	}
 
-	slice := []*model.Todo{&a}
-	// panic(fmt.Errorf("not implemented: Todos - todos"))
-	return slice, nil
+	return todos, nil
 }
 
 // Mutation returns MutationResolver implementation.

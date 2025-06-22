@@ -10,6 +10,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/suimi34/golang-graphql/database"
 	"github.com/suimi34/golang-graphql/graph"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -22,7 +23,15 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	// データベース接続を初期化
+	config := database.GetDBConfig("development")
+	db, err := database.ConnectDB(config)
+	if err != nil {
+		log.Fatalf("データベース接続に失敗: %v", err)
+	}
+	defer db.Close()
+
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db}}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
