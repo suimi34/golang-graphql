@@ -32,8 +32,15 @@ func TestGraphQLRequest(t *testing.T) {
 		t.Fatalf("テストデータの挿入に失敗: %v", err)
 	}
 
+	// テスト用TODOを挿入
+	_, err = db.Exec("INSERT INTO todos (id, text, done, user_id) VALUES (1, 'test todo', false, 1) ON DUPLICATE KEY UPDATE text='test todo'")
+	if err != nil {
+		t.Fatalf("テストTODOの挿入に失敗: %v", err)
+	}
+
 	// テスト終了後にクリーンアップ
 	defer func() {
+		db.Exec("DELETE FROM todos WHERE user_id IN (1, 123)")
 		db.Exec("DELETE FROM users WHERE id IN (1, 123)")
 	}()
 
@@ -54,6 +61,13 @@ func TestGraphQLRequest(t *testing.T) {
 				id
 				text
 				done
+				user {
+					id
+					name
+					email
+					createdAt
+					updatedAt
+				}
 			}
 		}`,
 	})
@@ -97,8 +111,16 @@ func TestGraphQLRequest(t *testing.T) {
 	// データが存在することを確認
 	assert.True(t, len(res.Data.Todos) > 0, "todos should not be empty")
 	assert.Equal(t, "1", res.Data.Todos[0].ID)
-	assert.Equal(t, "Todo for test", res.Data.Todos[0].Text)
+	assert.Equal(t, "test todo", res.Data.Todos[0].Text)
 	assert.Equal(t, false, res.Data.Todos[0].Done)
+
+	// ユーザー情報の確認
+	assert.NotNil(t, res.Data.Todos[0].User)
+	assert.Equal(t, "1", res.Data.Todos[0].User.ID)
+	assert.Equal(t, "test", res.Data.Todos[0].User.Name)
+	assert.Equal(t, "test@example.com", res.Data.Todos[0].User.Email)
+	assert.NotEmpty(t, res.Data.Todos[0].User.CreatedAt)
+	assert.NotEmpty(t, res.Data.Todos[0].User.UpdatedAt)
 }
 
 func TestCreateTodoMutation(t *testing.T) {
@@ -118,6 +140,7 @@ func TestCreateTodoMutation(t *testing.T) {
 
 	// テスト終了後にクリーンアップ
 	defer func() {
+		db.Exec("DELETE FROM todos WHERE user_id IN (1, 123)")
 		db.Exec("DELETE FROM users WHERE id IN (1, 123)")
 	}()
 
@@ -178,9 +201,17 @@ func TestCreateTodoMutation(t *testing.T) {
 		t.Fatalf("レスポンスのデコードに失敗: %v", err)
 	}
 
-	assert.Equal(t, "new-todo-id", res.Data.CreateTodo.ID)
+	assert.NotEmpty(t, res.Data.CreateTodo.ID) // データベースで生成されたIDなので空でないことを確認
 	assert.Equal(t, "New Todo Item", res.Data.CreateTodo.Text)
 	assert.Equal(t, false, res.Data.CreateTodo.Done)
 	assert.Equal(t, "123", res.Data.CreateTodo.User.ID)
 	assert.Equal(t, "Test User", res.Data.CreateTodo.User.Name)
+
+	// データベースに実際にTODOが作成されたことを確認
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM todos WHERE text = 'New Todo Item' AND user_id = 123").Scan(&count)
+	if err != nil {
+		t.Fatalf("TODOカウント取得に失敗: %v", err)
+	}
+	assert.Equal(t, 1, count, "TODOがデータベースに作成されている必要があります")
 }

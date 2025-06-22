@@ -16,15 +16,25 @@ import (
 func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
 	// ユーザー情報をデータベースから取得
 	var user model.User
-	var email string
-	fmt.Printf("inp: %v", input.UserID)
-	err := r.DB.QueryRow("SELECT id, name, email FROM users WHERE id = ?", input.UserID).Scan(&user.ID, &user.Name, &email)
+	err := r.DB.QueryRow("SELECT id, name, email, created_at, updated_at FROM users WHERE id = ?", input.UserID).Scan(
+		&user.ID, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("ユーザーが見つかりません: %v", err)
 	}
 
+	// TODOをデータベースに挿入
+	result, err := r.DB.Exec("INSERT INTO todos (text, done, user_id) VALUES (?, ?, ?)", input.Text, false, input.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("TODOの作成に失敗: %v", err)
+	}
+
+	todoID, err := result.LastInsertId()
+	if err != nil {
+		return nil, fmt.Errorf("TODO IDの取得に失敗: %v", err)
+	}
+
 	todo := &model.Todo{
-		ID:   "new-todo-id",
+		ID:   strconv.FormatInt(todoID, 10),
 		Text: input.Text,
 		Done: false,
 		User: &user,
@@ -34,31 +44,33 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) 
 
 // Todos is the resolver for the todos field.
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	// データベースからユーザー一覧を取得して返す例
-	rows, err := r.DB.Query("SELECT id, name, email FROM users LIMIT 10")
+	// データベースからTODO一覧を取得
+	query := `
+		SELECT t.id, t.text, t.done, t.user_id,
+		       u.id, u.name, u.email, u.created_at, u.updated_at
+		FROM todos t
+		JOIN users u ON t.user_id = u.id
+		ORDER BY t.created_at DESC
+	`
+	rows, err := r.DB.Query(query)
 	if err != nil {
-		return nil, fmt.Errorf("ユーザー取得エラー: %v", err)
+		return nil, fmt.Errorf("TODO取得エラー: %v", err)
 	}
 	defer rows.Close()
 
 	var todos []*model.Todo
 	for rows.Next() {
-		var id int
-		var name, email string
-		if err := rows.Scan(&id, &name, &email); err != nil {
+		var todo model.Todo
+		var user model.User
+		var userID string
+
+		if err := rows.Scan(&todo.ID, &todo.Text, &todo.Done, &userID,
+			&user.ID, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt); err != nil {
 			continue
 		}
 
-		todo := &model.Todo{
-			ID:   strconv.Itoa(id),
-			Text: fmt.Sprintf("Todo for %s", name),
-			Done: false,
-			User: &model.User{
-				ID:   strconv.Itoa(id),
-				Name: name,
-			},
-		}
-		todos = append(todos, todo)
+		todo.User = &user
+		todos = append(todos, &todo)
 	}
 
 	return todos, nil
