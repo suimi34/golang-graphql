@@ -1,31 +1,43 @@
-# [START cloudrun_rails_cloudbuild]
 steps:
   - id: "build image"
     name: "gcr.io/cloud-builders/docker"
-    entrypoint: 'bash'
+    entrypoint: "bash"
     args: ["-c", "docker build -t gcr.io/${PROJECT_ID}/${_SERVICE_NAME} ."]
 
   - id: "push image"
     name: "gcr.io/cloud-builders/docker"
     args: ["push", "gcr.io/${PROJECT_ID}/${_SERVICE_NAME}"]
 
+  - id: "run migrations"
+    name: "migrate/migrate"
+    args:
+      - "-path"
+      - "migrations"
+      - "-database"
+      - "mysql://${_DB_USER}:${_DB_PASSWORD}@tcp(${_DB_HOST}:${_DB_PORT})/${_DB_NAME}"
+      - "up"
+
   - id: "deploy"
     name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "bash"
     args:
-    - -c
-    - |
-      gcloud run deploy ${_SERVICE_NAME} --image gcr.io/${PROJECT_ID}/${_SERVICE_NAME} \
-      --region asia-northeast1 \
-      --max-instances=1 \
-      --allow-unauthenticated
+      - -c
+      - |
+        gcloud run deploy ${_SERVICE_NAME} --image gcr.io/${PROJECT_ID}/${_SERVICE_NAME} \
+        --region asia-northeast1 \
+        --max-instances=1 \
+        --allow-unauthenticated
     # gcloud beta run services add-iam-policy-binding --region=asia-northeast1 --member=allUsers --role=roles/run.invoker api
 substitutions:
   _SERVICE_NAME: api
+  _DB_HOST: ${_DB_HOST}
+  _DB_PORT: ${_DB_PORT}
+  _DB_USER: ${_DB_USER}
+  _DB_PASSWORD: ${_DB_PASSWORD}
+  _DB_NAME: ${_DB_NAME}
 
 images:
   - "gcr.io/${PROJECT_ID}/${_SERVICE_NAME}"
 
 options:
   logging: CLOUD_LOGGING_ONLY
-# [END cloudrun_rails_cloudbuild]
