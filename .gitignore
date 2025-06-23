@@ -1,0 +1,246 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+.env.production
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Webpack build outputs
+frontend/dist/
+frontend/build/
+
+# React build output
+build/
+
+# Playwright Test Results
+tests/test-results/
+tests/playwright-report/
+tests/playwright/.cache/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Configuration files with sensitive data
+config.local.json
+config.production.json
+secrets.json
+
+# Docker
+.dockerignore
+
+# Backup files
+*.backup
+*.bak
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# GraphQL generated files (if auto-generated)
+# graph/generated.go
+# graph/model/models_gen.go
+
+# Local development certificates
+*.pem
+*.key
+*.crt
+
+# Migration files (comment out if you want to track them)
+# migrations/
+
+# Test databases
+*test.db
+test_*.db
+*_test.db
+
+# Application logs
+app.log
+server.log
+*.log.*
+
+# Go vendor directory
+vendor/
+
+# Air live reload tool
+tmp/
+
+# Delve debugger
+debug
+
+# GoLand
+.idea/
+
+# VSCode
+.vscode/
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Vim
+*.swp
+*.swo
+
+# Local environment variables
+.envrc
+
+# GoReleaser dist
+dist/
+
+# Terraform files (if using infrastructure as code)
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Cloud Build artifacts
+cloudbuild-artifacts/
+
+# Google Cloud credentials
+service-account-key.json
+*.json
+
+# Local MySQL data (if using docker-compose)
+mysql-data/
+postgres-data/
+
+# Frontend package lock files (choose one)
+package-lock.json
+yarn.lock
+
+# Build artifacts
+*.tar.gz
+*.zip
+
+# Profiling data
+*.prof
+*.cpu
+*.mem
+
+# Generated documentation
+docs/build/
+
+# Temporary test files
+test-temp/
+*.tmp

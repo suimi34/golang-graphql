@@ -26,6 +26,19 @@ input NewTodo {
   userId: String!
 }
 
+input RegisterUserInput {
+  name: String!
+  email: String!
+  password: String!
+}
+
+type RegisterUserResponse {
+  success: Boolean!
+  message: String!
+  user: User
+}
+
 type Mutation {
   createTodo(input: NewTodo!): Todo!
+  registerUser(input: RegisterUserInput!): RegisterUserResponse!
 }

@@ -13,6 +13,18 @@ type NewTodo struct {
 type Query struct {
 }
 
+type RegisterUserInput struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type RegisterUserResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	User    *User  `json:"user,omitempty"`
+}
+
 type Todo struct {
 	ID   string `json:"id"`
 	Text string `json:"text"`
