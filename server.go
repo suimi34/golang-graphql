@@ -24,7 +24,11 @@ func main() {
 	}
 
 	// GORM接続を初期化
-	config := database.GetDBConfig("development")
+	env := os.Getenv("APP_ENV")
+	if env == "" {
+		env = "development"
+	}
+	config := database.GetDBConfig(env)
 	gormDB, err := database.ConnectGORM(config)
 	if err != nil {
 		log.Fatalf("GORM接続に失敗: %v", err)

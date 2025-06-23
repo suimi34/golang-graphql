@@ -29,6 +29,16 @@ func GetDBConfig(env string) Config {
 		}
 	}
 
+	if env == "production" {
+		return Config{
+			Host:     getEnv("DB_HOST", "127.0.0.1"),
+			Port:     getEnv("DB_PORT", "3306"),
+			User:     getEnv("DB_USER", "root"),
+			Password: getEnv("DB_PASSWORD", "root"),
+			Database: getEnv("DB_NAME", "graphql_db"),
+		}
+	}
+
 	return Config{
 		Host:     getEnv("DB_HOST", "127.0.0.1"),
 		Port:     getEnv("DB_PORT", "3306"),
