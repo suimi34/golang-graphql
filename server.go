@@ -47,9 +47,16 @@ func main() {
 		Cache: lru.New[string](100),
 	})
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	// GraphQL playground is only available in development environment
+	if env == "development" {
+		http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+		log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	} else {
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		})
+		log.Printf("GraphQL server running on port %s (playground disabled)", port)
+	}
 	http.Handle("/query", srv)
-
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
