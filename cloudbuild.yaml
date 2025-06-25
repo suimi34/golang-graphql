@@ -26,7 +26,8 @@ steps:
         gcloud run deploy ${_SERVICE_NAME} --image gcr.io/${PROJECT_ID}/${_SERVICE_NAME} \
         --region asia-northeast1 \
         --max-instances=1 \
-        --allow-unauthenticated && \
+        --allow-unauthenticated \
+        --update-env-vars DB_HOST=${_DB_HOST},DB_PORT=${_DB_PORT},DB_USER=${_DB_USER},DB_PASSWORD=${_DB_PASSWORD},DB_NAME=${_DB_NAME} && \
         gcloud beta run services add-iam-policy-binding --region=asia-northeast1 --member=allUsers --role=roles/run.invoker ${_SERVICE_NAME}
 substitutions:
   _SERVICE_NAME: api
