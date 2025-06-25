@@ -27,10 +27,12 @@ steps:
         --region asia-northeast1 \
         --max-instances=1 \
         --allow-unauthenticated \
-        --update-env-vars DB_HOST=${_DB_HOST},DB_PORT=${_DB_PORT},DB_USER=${_DB_USER},DB_PASSWORD=${_DB_PASSWORD},DB_NAME=${_DB_NAME} && \
+        --update-env-vars DB_HOST=${_DB_HOST},DB_PORT=${_DB_PORT},DB_USER=${_DB_USER},DB_PASSWORD=${_DB_PASSWORD},DB_NAME=${_DB_NAME},PORT=${_PORT},APP_ENV=${_APP_ENV} && \
         gcloud beta run services add-iam-policy-binding --region=asia-northeast1 --member=allUsers --role=roles/run.invoker ${_SERVICE_NAME}
 substitutions:
   _SERVICE_NAME: api
+  _PORT: ${_PORT}
+  _APP_ENV: ${_APP_ENV}
   _DB_HOST: ${_DB_HOST}
   _DB_PORT: ${_DB_PORT}
   _DB_USER: ${_DB_USER}
