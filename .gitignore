@@ -219,15 +219,10 @@ cloudbuild-artifacts/
 
 # Google Cloud credentials
 service-account-key.json
-*.json
 
 # Local MySQL data (if using docker-compose)
 mysql-data/
 postgres-data/
-
-# Frontend package lock files (choose one)
-package-lock.json
-yarn.lock
 
 # Build artifacts
 *.tar.gz
