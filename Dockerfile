@@ -1,13 +1,13 @@
 # Use Node.js for frontend build
 FROM node:22-alpine AS frontend-builder
 WORKDIR /app
-COPY build-frontend.sh ./
-COPY frontend/ ./frontend/
-RUN chmod +x build-frontend.sh
 
-RUN ls -al
-RUN ls -al frontend/
-RUN ./build-frontend.sh
+COPY frontend/ ./frontend/
+WORKDIR /app/frontend
+
+RUN npm install
+RUN npm run build
+
 
 # Use the offical Go image to create a build artifact.
 # This is based on Debian and sets the GOPATH to /go.

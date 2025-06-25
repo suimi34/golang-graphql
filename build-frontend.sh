@@ -3,7 +3,7 @@
 echo "Building React frontend..."
 
 # フロントエンドディレクトリに移動
-cd frontend
+cd /app/frontend
 
 # 依存関係をインストール
 echo "Installing dependencies..."
