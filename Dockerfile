@@ -4,6 +4,9 @@ WORKDIR /app
 COPY build-frontend.sh ./
 COPY frontend/ ./frontend/
 RUN chmod +x build-frontend.sh
+
+RUN ls -al
+RUN ls -al frontend/
 RUN ./build-frontend.sh
 
 # Use the offical Go image to create a build artifact.
