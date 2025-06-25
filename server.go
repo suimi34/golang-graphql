@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +16,9 @@ import (
 	"github.com/suimi34/golang-graphql/handlers"
 	"github.com/vektah/gqlparser/v2/ast"
 )
+
+//go:embed templates/*.html
+var templatesFS embed.FS
 
 const defaultPort = "8080"
 
@@ -49,7 +53,7 @@ func main() {
 	})
 
 	// 認証ハンドラーを初期化
-	authHandler, err := handlers.NewAuthHandler(gormDB, env)
+	authHandler, err := handlers.NewAuthHandler(gormDB, env, templatesFS)
 	if err != nil {
 		log.Fatalf("認証ハンドラーの初期化に失敗: %v", err)
 	}

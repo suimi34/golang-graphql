@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"embed"
 	"html/template"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -26,10 +26,9 @@ type RegistrationData struct {
 	ShowPlayground bool
 }
 
-func NewAuthHandler(db *gorm.DB, env string) (*AuthHandler, error) {
-	// テンプレートを読み込み
-	templatesPath := filepath.Join("templates", "*.html")
-	tmpl, err := template.ParseGlob(templatesPath)
+func NewAuthHandler(db *gorm.DB, env string, templatesFS embed.FS) (*AuthHandler, error) {
+	// embedされたテンプレートを読み込み
+	tmpl, err := template.ParseFS(templatesFS, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
