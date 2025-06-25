@@ -3,7 +3,8 @@ FROM node:22-alpine AS frontend-builder
 WORKDIR /app
 COPY build-frontend.sh ./
 COPY frontend/ ./frontend/
-RUN chmod +x build-frontend.sh && ./build-frontend.sh
+RUN chmod +x build-frontend.sh
+RUN ./build-frontend.sh
 
 # Use the offical Go image to create a build artifact.
 # This is based on Debian and sets the GOPATH to /go.
