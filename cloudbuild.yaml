@@ -26,8 +26,20 @@ steps:
         gcloud run deploy ${_SERVICE_NAME} --image gcr.io/${PROJECT_ID}/${_SERVICE_NAME} \
         --region asia-northeast1 \
         --max-instances=1 \
+        --platform=managed \
         --allow-unauthenticated \
         --update-env-vars DB_HOST=${_DB_HOST},DB_PORT=${_DB_PORT},DB_USER=${_DB_USER},DB_PASSWORD=${_DB_PASSWORD},DB_NAME=${_DB_NAME},APP_ENV=${_APP_ENV}
+
+  - id: "access service"
+    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - -c
+      - |
+        gcloud run services add-iam-policy-binding ${_SERVICE_NAME} \
+        --region asia-northeast1 \
+        --member="allUsers" \
+        --role="roles/run.invoker"
 substitutions:
   _SERVICE_NAME: api
   _APP_ENV: ${_APP_ENV}
