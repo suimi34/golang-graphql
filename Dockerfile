@@ -22,6 +22,7 @@ WORKDIR /
 
 # Copy the binary to the production image from the builder stage.
 COPY --from=builder /app/main /golang-graphql
+COPY --from=builder /app/templates /templates
 
 EXPOSE 8080
 
