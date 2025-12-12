@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"embed"
+	"encoding/base64"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +13,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/gorilla/sessions"
 	"github.com/suimi34/golang-graphql/database"
 	"github.com/suimi34/golang-graphql/graph"
 	"github.com/suimi34/golang-graphql/handlers"
@@ -39,7 +42,31 @@ func main() {
 		log.Fatalf("GORM接続に失敗: %v", err)
 	}
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{GORMDB: gormDB}}))
+	// セッションストアを初期化
+	sessionSecret := os.Getenv("SESSION_SECRET")
+	if sessionSecret == "" {
+		// デフォルトのランダムシークレットを生成
+		secretBytes := make([]byte, 32)
+		if _, err := rand.Read(secretBytes); err != nil {
+			log.Fatalf("セッションシークレットの生成に失敗: %v", err)
+		}
+		sessionSecret = base64.StdEncoding.EncodeToString(secretBytes)
+		log.Println("警告: SESSION_SECRET が設定されていないため、ランダムシークレットを生成しました")
+	}
+	sessionStore := sessions.NewCookieStore([]byte(sessionSecret))
+	sessionStore.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400, // 24時間
+		HttpOnly: true,
+		Secure:   env == "production",
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	resolver := &graph.Resolver{
+		GORMDB:       gormDB,
+		SessionStore: sessionStore,
+	}
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
@@ -64,18 +91,27 @@ func main() {
 	// ユーザー登録ルート
 	http.HandleFunc("/register", authHandler.ShowRegisterForm)
 
+	// ログインルート
+	http.HandleFunc("/login", authHandler.ShowLoginForm)
+
 	// GraphQL playground is only available in development environment
 	if env == "development" {
 		http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 		log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 		log.Printf("User registration available at http://localhost:%s/register", port)
+		log.Printf("Login available at http://localhost:%s/login", port)
 	} else {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 		})
 		log.Printf("GraphQL server running on port %s (playground disabled)", port)
 		log.Printf("User registration available at http://localhost:%s/register", port)
+		log.Printf("Login available at http://localhost:%s/login", port)
 	}
-	http.Handle("/query", srv)
+	// GraphQLハンドラーにHTTPコンテキストを渡すラッパー
+	http.HandleFunc("/query", func(w http.ResponseWriter, r *http.Request) {
+		ctx := graph.WithHTTPContext(r.Context(), r, w)
+		srv.ServeHTTP(w, r.WithContext(ctx))
+	})
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

@@ -4,12 +4,8 @@ import (
 	"embed"
 	"html/template"
 	"net/http"
-	"strings"
 
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-
-	"github.com/suimi34/golang-graphql/database"
 )
 
 type AuthHandler struct {
@@ -51,80 +47,18 @@ func (h *AuthHandler) ShowRegisterForm(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *AuthHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		h.ShowRegisterForm(w, r)
-		return
-	}
+type LoginData struct {
+	Email          string
+	Error          string
+	ShowPlayground bool
+}
 
-	// フォームデータを取得
-	name := strings.TrimSpace(r.FormValue("name"))
-	email := strings.TrimSpace(r.FormValue("email"))
-	password := r.FormValue("password")
-	confirmPassword := r.FormValue("confirm_password")
-
-	data := RegistrationData{
-		Name:           name,
-		Email:          email,
+func (h *AuthHandler) ShowLoginForm(w http.ResponseWriter, r *http.Request) {
+	data := LoginData{
 		ShowPlayground: h.Env == "development",
 	}
 
-	// バリデーション
-	if name == "" || email == "" || password == "" {
-		data.Error = "すべてのフィールドを入力してください"
-		h.Templates.ExecuteTemplate(w, "register.html", data)
-		return
-	}
-
-	if password != confirmPassword {
-		data.Error = "パスワードが一致しません"
-		h.Templates.ExecuteTemplate(w, "register.html", data)
-		return
-	}
-
-	if len(password) < 6 {
-		data.Error = "パスワードは6文字以上で入力してください"
-		h.Templates.ExecuteTemplate(w, "register.html", data)
-		return
-	}
-
-	// メールアドレスの重複チェック
-	var existingUser database.User
-	if err := h.DB.Where("email = ?", email).First(&existingUser).Error; err == nil {
-		data.Error = "このメールアドレスは既に登録されています"
-		h.Templates.ExecuteTemplate(w, "register.html", data)
-		return
-	}
-
-	// パスワードのハッシュ化
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		data.Error = "パスワードの処理中にエラーが発生しました"
-		h.Templates.ExecuteTemplate(w, "register.html", data)
-		return
-	}
-
-	// ユーザーを作成
-	user := database.User{
-		Name:     name,
-		Email:    email,
-		Password: string(hashedPassword),
-	}
-
-	if err := h.DB.Create(&user).Error; err != nil {
-		data.Error = "ユーザー登録中にエラーが発生しました"
-		h.Templates.ExecuteTemplate(w, "register.html", data)
-		return
-	}
-
-	// 成功ページを表示
-	successData := RegistrationData{
-		Name:           name,
-		Email:          email,
-		ShowPlayground: h.Env == "development",
-	}
-
-	if err := h.Templates.ExecuteTemplate(w, "success.html", successData); err != nil {
+	if err := h.Templates.ExecuteTemplate(w, "login.html", data); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

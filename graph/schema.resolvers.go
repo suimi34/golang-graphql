@@ -131,6 +131,71 @@ func (r *mutationResolver) RegisterUser(ctx context.Context, input model.Registe
 	}, nil
 }
 
+// LoginUser is the resolver for the loginUser field.
+func (r *mutationResolver) LoginUser(ctx context.Context, input model.LoginUserInput) (*model.LoginUserResponse, error) {
+	// バリデーション
+	email := strings.TrimSpace(input.Email)
+	password := input.Password
+
+	if email == "" || password == "" {
+		return &model.LoginUserResponse{
+			Success: false,
+			Message: "メールアドレスとパスワードを入力してください",
+			User:    nil,
+		}, nil
+	}
+
+	// メールアドレスでユーザーを検索
+	var dbUser database.User
+	if err := r.GORMDB.Where("email = ?", email).First(&dbUser).Error; err != nil {
+		return &model.LoginUserResponse{
+			Success: false,
+			Message: "メールアドレスまたはパスワードが正しくありません",
+			User:    nil,
+		}, nil
+	}
+
+	// パスワードを検証
+	if err := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(password)); err != nil {
+		return &model.LoginUserResponse{
+			Success: false,
+			Message: "メールアドレスまたはパスワードが正しくありません",
+			User:    nil,
+		}, nil
+	}
+
+	// セッションを作成
+	httpReq := GetHTTPRequest(ctx)
+	httpRes := GetHTTPResponse(ctx)
+	if httpReq != nil && httpRes != nil && r.SessionStore != nil {
+		session, _ := r.SessionStore.Get(httpReq, "session")
+		session.Values["user_id"] = dbUser.ID
+		session.Values["email"] = dbUser.Email
+		if err := session.Save(httpReq, httpRes); err != nil {
+			return &model.LoginUserResponse{
+				Success: false,
+				Message: "セッションの作成に失敗しました",
+				User:    nil,
+			}, nil
+		}
+	}
+
+	// レスポンス用のモデルに変換
+	responseUser := &model.User{
+		ID:        strconv.Itoa(int(dbUser.ID)),
+		Name:      dbUser.Name,
+		Email:     dbUser.Email,
+		CreatedAt: dbUser.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		UpdatedAt: dbUser.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+	}
+
+	return &model.LoginUserResponse{
+		Success: true,
+		Message: "ログインに成功しました",
+		User:    responseUser,
+	}, nil
+}
+
 // Todos is the resolver for the todos field.
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 	// GORMでTODO一覧を取得（Userも含む）

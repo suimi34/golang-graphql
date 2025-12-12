@@ -25,19 +25,19 @@ test.describe('User Registration GraphQL Integration', () => {
     await page.fill('input[name="email"]', `graphql${timestamp}@example.com`);
     await page.fill('input[name="password"]', 'password123');
     await page.fill('input[name="confirmPassword"]', 'password123');
-    
+
     await page.click('button[type="submit"]');
-    
+
     // Wait for the request to be made
     await page.waitForTimeout(1000);
-    
+
     // Verify GraphQL request was made
     expect(graphqlRequests.length).toBeGreaterThan(0);
-    
+
     const request = graphqlRequests[0];
     expect(request.method).toBe('POST');
     expect(request.url).toContain('/query');
-    
+
     // Verify the mutation is correct
     const postData = JSON.parse(request.postData);
     expect(postData.query).toContain('mutation RegisterUser');
@@ -80,9 +80,9 @@ test.describe('User Registration GraphQL Integration', () => {
     await page.fill('input[name="email"]', 'mocksuccess@example.com');
     await page.fill('input[name="password"]', 'password123');
     await page.fill('input[name="confirmPassword"]', 'password123');
-    
+
     await page.click('button[type="submit"]');
-    
+
     // Should show success page
     await expect(page.locator('h1')).toContainText('登録完了');
     await expect(page.locator('text=名前: Mock Success User')).toBeVisible();
@@ -117,12 +117,12 @@ test.describe('User Registration GraphQL Integration', () => {
     await page.fill('input[name="email"]', 'mockerror@example.com');
     await page.fill('input[name="password"]', 'password123');
     await page.fill('input[name="confirmPassword"]', 'password123');
-    
+
     await page.click('button[type="submit"]');
-    
+
     // Should show error message
     await expect(page.locator('text=このメールアドレスは既に登録されています')).toBeVisible();
-    
+
     // Should stay on registration form
     await expect(page.locator('h1')).toContainText('ユーザー登録');
   });
@@ -140,9 +140,9 @@ test.describe('User Registration GraphQL Integration', () => {
     await page.fill('input[name="email"]', 'networkerror@example.com');
     await page.fill('input[name="password"]', 'password123');
     await page.fill('input[name="confirmPassword"]', 'password123');
-    
+
     await page.click('button[type="submit"]');
-    
+
     // Should show generic error message
     await expect(page.locator('text=登録中にエラーが発生しました')).toBeVisible();
   });
@@ -164,16 +164,16 @@ test.describe('User Registration GraphQL Integration', () => {
     await page.fill('input[name="email"]', 'malformed@example.com');
     await page.fill('input[name="password"]', 'password123');
     await page.fill('input[name="confirmPassword"]', 'password123');
-    
+
     await page.click('button[type="submit"]');
-    
+
     // Should show generic error message
     await expect(page.locator('text=登録中にエラーが発生しました')).toBeVisible();
   });
 
   test('should include correct headers in GraphQL request', async ({ page }) => {
     let requestHeaders = {};
-    
+
     page.on('request', request => {
       if (request.url().includes('/query') && request.method() === 'POST') {
         requestHeaders = request.headers();
@@ -186,12 +186,12 @@ test.describe('User Registration GraphQL Integration', () => {
     await page.fill('input[name="email"]', `headers${timestamp}@example.com`);
     await page.fill('input[name="password"]', 'password123');
     await page.fill('input[name="confirmPassword"]', 'password123');
-    
+
     await page.click('button[type="submit"]');
-    
+
     // Wait for request
     await page.waitForTimeout(1000);
-    
+
     // Verify headers
     expect(requestHeaders['content-type']).toContain('application/json');
     // Accept header might not be set by graphql-request, so just check content-type
@@ -224,12 +224,12 @@ test.describe('User Registration GraphQL Integration', () => {
     await page.fill('input[name="email"]', 'timeout@example.com');
     await page.fill('input[name="password"]', 'password123');
     await page.fill('input[name="confirmPassword"]', 'password123');
-    
+
     await page.click('button[type="submit"]');
-    
+
     // Should show loading state
     await expect(page.locator('button[type="submit"]')).toContainText('登録中...');
-    
+
     // Note: In a real test, you might want to check how your app handles timeouts
     // For this test, we'll just verify the loading state appears
   });
