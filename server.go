@@ -80,9 +80,15 @@ func main() {
 	})
 
 	// 認証ハンドラーを初期化
-	authHandler, err := handlers.NewAuthHandler(gormDB, env, templatesFS)
+	authHandler, err := handlers.NewAuthHandler(gormDB, env, templatesFS, sessionStore)
 	if err != nil {
 		log.Fatalf("認証ハンドラーの初期化に失敗: %v", err)
+	}
+
+	// Todoハンドラーを初期化
+	todoHandler, err := handlers.NewTodoHandler(env, templatesFS, sessionStore)
+	if err != nil {
+		log.Fatalf("Todoハンドラーの初期化に失敗: %v", err)
 	}
 
 	// 静的ファイルの配信（フロントエンドのビルド済みファイル）
@@ -94,12 +100,16 @@ func main() {
 	// ログインルート
 	http.HandleFunc("/login", authHandler.ShowLoginForm)
 
+	// Todo一覧ルート
+	http.HandleFunc("/todos", todoHandler.ShowTodosPage)
+
 	// GraphQL playground is only available in development environment
 	if env == "development" {
 		http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 		log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 		log.Printf("User registration available at http://localhost:%s/register", port)
 		log.Printf("Login available at http://localhost:%s/login", port)
+		log.Printf("Todo list available at http://localhost:%s/todos", port)
 	} else {
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
@@ -107,6 +117,7 @@ func main() {
 		log.Printf("GraphQL server running on port %s (playground disabled)", port)
 		log.Printf("User registration available at http://localhost:%s/register", port)
 		log.Printf("Login available at http://localhost:%s/login", port)
+		log.Printf("Todo list available at http://localhost:%s/todos", port)
 	}
 	// GraphQLハンドラーにHTTPコンテキストを渡すラッパー
 	http.HandleFunc("/query", func(w http.ResponseWriter, r *http.Request) {

@@ -75,17 +75,15 @@ const UserRegistration = () => {
       };
 
       const response = await client.request(REGISTER_USER_MUTATION, variables);
-      
+
       if (response.registerUser.success) {
         setMessage(response.registerUser.message);
         setIsSuccess(true);
         setRegisteredUser(response.registerUser.user);
-        setFormData({
-          name: '',
-          email: '',
-          password: '',
-          confirmPassword: ''
-        });
+        // 登録成功後、Todo一覧ページにリダイレクト
+        setTimeout(() => {
+          window.location.href = '/todos';
+        }, 1500);
       } else {
         setMessage(response.registerUser.message);
         setIsSuccess(false);
@@ -178,33 +176,17 @@ const UserRegistration = () => {
         <p style={{textAlign: 'center', marginBottom: '20px'}}>
           ユーザー登録が正常に完了しました。
         </p>
-        
+
         <div style={styles.successInfo}>
           <strong>登録情報:</strong><br />
           名前: {registeredUser.name}<br />
           メールアドレス: {registeredUser.email}<br />
           登録日時: {new Date(registeredUser.createdAt).toLocaleString('ja-JP')}
         </div>
-        
-        <p style={{textAlign: 'center', margin: '20px 0'}}>
-          GraphQLエンドポイントを使用してアプリケーションをご利用ください。
+
+        <p style={{textAlign: 'center', margin: '20px 0', color: '#28a745'}}>
+          Todo一覧ページに移動します...
         </p>
-        
-        <div style={styles.buttonGroup}>
-          <button 
-            onClick={() => {
-              setIsSuccess(false);
-              setRegisteredUser(null);
-              setMessage('');
-            }}
-            style={styles.button}
-          >
-            新しいユーザーを登録
-          </button>
-          <a href="/query" style={styles.secondaryButton}>
-            GraphQL エンドポイント
-          </a>
-        </div>
       </div>
     );
   }
@@ -212,7 +194,7 @@ const UserRegistration = () => {
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>ユーザー登録</h1>
-      
+
       <form onSubmit={handleSubmit}>
         <div style={styles.formGroup}>
           <label style={styles.label} htmlFor="name">名前:</label>
@@ -227,7 +209,7 @@ const UserRegistration = () => {
             required
           />
         </div>
-        
+
         <div style={styles.formGroup}>
           <label style={styles.label} htmlFor="email">メールアドレス:</label>
           <input
@@ -241,7 +223,7 @@ const UserRegistration = () => {
             required
           />
         </div>
-        
+
         <div style={styles.formGroup}>
           <label style={styles.label} htmlFor="password">パスワード:</label>
           <input
@@ -255,7 +237,7 @@ const UserRegistration = () => {
             required
           />
         </div>
-        
+
         <div style={styles.formGroup}>
           <label style={styles.label} htmlFor="confirmPassword">パスワード確認:</label>
           <input
@@ -269,16 +251,16 @@ const UserRegistration = () => {
             required
           />
         </div>
-        
-        <button 
-          type="submit" 
+
+        <button
+          type="submit"
           style={styles.button}
           disabled={loading}
         >
           {loading ? '登録中...' : '登録'}
         </button>
       </form>
-      
+
       {message && (
         <div style={styles.message}>
           {message}

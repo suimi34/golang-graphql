@@ -4,7 +4,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 module.exports = {
   entry: {
     register: './src/index.js',
-    login: './src/login.js'
+    login: './src/login.js',
+    todos: './src/todos.js'
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -38,6 +39,11 @@ module.exports = {
       template: './src/login.html',
       filename: 'login.html',
       chunks: ['login']
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/todos.html',
+      filename: 'todos.html',
+      chunks: ['todos']
     })
   ],
   devServer: {

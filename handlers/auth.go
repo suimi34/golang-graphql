@@ -5,13 +5,15 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/gorilla/sessions"
 	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
-	DB        *gorm.DB
-	Templates *template.Template
-	Env       string
+	DB           *gorm.DB
+	Templates    *template.Template
+	Env          string
+	SessionStore *sessions.CookieStore
 }
 
 type RegistrationData struct {
@@ -22,7 +24,7 @@ type RegistrationData struct {
 	ShowPlayground bool
 }
 
-func NewAuthHandler(db *gorm.DB, env string, templatesFS embed.FS) (*AuthHandler, error) {
+func NewAuthHandler(db *gorm.DB, env string, templatesFS embed.FS, sessionStore *sessions.CookieStore) (*AuthHandler, error) {
 	// embedされたテンプレートを読み込み
 	tmpl, err := template.ParseFS(templatesFS, "templates/*.html")
 	if err != nil {
@@ -30,9 +32,10 @@ func NewAuthHandler(db *gorm.DB, env string, templatesFS embed.FS) (*AuthHandler
 	}
 
 	return &AuthHandler{
-		DB:        db,
-		Templates: tmpl,
-		Env:       env,
+		DB:           db,
+		Templates:    tmpl,
+		Env:          env,
+		SessionStore: sessionStore,
 	}, nil
 }
 

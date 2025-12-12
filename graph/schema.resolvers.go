@@ -17,14 +17,30 @@ import (
 
 // CreateTodo is the resolver for the createTodo field.
 func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	// ユーザー情報をGORMで取得
-	var dbUser database.User
-	userIDInt, err := strconv.Atoi(input.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("無効なユーザーID: %v", err)
+	// セッションからユーザーIDを取得
+	httpReq := GetHTTPRequest(ctx)
+	if httpReq == nil {
+		return nil, fmt.Errorf("認証が必要です")
 	}
 
-	if err := r.GORMDB.First(&dbUser, userIDInt).Error; err != nil {
+	session, err := r.SessionStore.Get(httpReq, "session")
+	if err != nil {
+		return nil, fmt.Errorf("認証が必要です")
+	}
+
+	userID, ok := session.Values["user_id"]
+	if !ok || userID == nil {
+		return nil, fmt.Errorf("認証が必要です")
+	}
+
+	userIDUint, ok := userID.(uint)
+	if !ok {
+		return nil, fmt.Errorf("無効なセッションです")
+	}
+
+	// ユーザー情報をGORMで取得
+	var dbUser database.User
+	if err := r.GORMDB.First(&dbUser, userIDUint).Error; err != nil {
 		return nil, fmt.Errorf("ユーザーが見つかりません: %v", err)
 	}
 
@@ -32,7 +48,7 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) 
 	dbTodo := database.Todo{
 		Text:   input.Text,
 		Done:   false,
-		UserID: uint(userIDInt),
+		UserID: userIDUint,
 	}
 
 	if err := r.GORMDB.Create(&dbTodo).Error; err != nil {

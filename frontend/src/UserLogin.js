@@ -63,10 +63,10 @@ const UserLogin = () => {
         setMessage(response.loginUser.message);
         setIsSuccess(true);
         setLoggedInUser(response.loginUser.user);
-        setFormData({
-          email: '',
-          password: ''
-        });
+        // ログイン成功後、Todo一覧ページにリダイレクト
+        setTimeout(() => {
+          window.location.href = '/todos';
+        }, 1500);
       } else {
         setMessage(response.loginUser.message);
         setIsSuccess(false);
@@ -176,25 +176,9 @@ const UserLogin = () => {
           登録日時: {new Date(loggedInUser.createdAt).toLocaleString('ja-JP')}
         </div>
 
-        <p style={{textAlign: 'center', margin: '20px 0'}}>
-          GraphQLエンドポイントを使用してアプリケーションをご利用ください。
+        <p style={{textAlign: 'center', margin: '20px 0', color: '#28a745'}}>
+          Todo一覧ページに移動します...
         </p>
-
-        <div style={styles.buttonGroup}>
-          <button
-            onClick={() => {
-              setIsSuccess(false);
-              setLoggedInUser(null);
-              setMessage('');
-            }}
-            style={styles.button}
-          >
-            別のアカウントでログイン
-          </button>
-          <a href="/query" style={styles.secondaryButton}>
-            GraphQL エンドポイント
-          </a>
-        </div>
       </div>
     );
   }
